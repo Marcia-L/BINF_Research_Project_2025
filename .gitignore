@@ -1,0 +1,8 @@
+data/
+outputs/
+conda/
+.ipynb_checkpoints/
+
+*.out
+*.err
+slurm-*.out
