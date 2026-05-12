@@ -1,11 +1,13 @@
 """
-Plot global map of predicted provinces from model output.
-
 Input:
 - CSV files produced by compare_baseline_and_ssps_provinces.py
 
+Output:
+- Global map of predicted provinces, colored by province label.
+- Pie chart of province-to-province transition proportion
+
 Usage:
-    plot_transition_province.py
+    python plot_transition_province.py
     
 """
 
@@ -26,17 +28,17 @@ province_order = [
     "CTEM", "OTEM", "STEM", "MTEM",
 ]
 
-colors = plt.cm.tab10.colors
-
+colors = plt.cm.tab10.colors   # province color
 province_color = {
     province: colors[i]
     for i, province in enumerate(province_order)
 }
 
-province_dict = {
+# province: str to int
+province_dict = {   
     province: i
     for i, province in enumerate(province_order)
-}
+}   
 
 
 
@@ -48,7 +50,7 @@ def load_compared_df(ssp):
     
 
 def plot_world_map_colored_by_province(ssp, compared_df):
-    changed_df = compared_df[compared_df["changed"] == True].copy()
+    changed_df = compared_df.copy()
     
     # Accurate to 0.05 degrees
     changed_df["latitude"] = (changed_df["latitude"]/0.05).round()*0.05
@@ -105,11 +107,12 @@ def plot_world_map_colored_by_province(ssp, compared_df):
     ax.coastlines(resolution="10m", lw=0.5, zorder=2)
 
 
+    # add legend: match color with province label
     legend_handles = [
         Patch(facecolor=province_color[province], label=province)
         for province in province_order
     ]
-
+    
     ax.legend(
         handles=legend_handles,
         loc="center left",
@@ -139,29 +142,31 @@ def plot_world_map_colored_by_province(ssp, compared_df):
 def plot_transition_province(ssp, compared_df):
     changed_df = compared_df[compared_df["changed"] == True].copy()
 
+    # create province-to-province transition column
     changed_df["transition"] = (
         changed_df["baseline_provinces"] 
         + " to " 
         + changed_df["ssp_provinces"]
     )
-
     
     transition_counts = changed_df["transition"].value_counts()
     transition_prop = transition_counts / transition_counts.sum()
 
+    # the displayed transition proportion 
     min_prop = 0.03   
     major_counts = transition_counts[transition_prop >= min_prop].copy()
     minor_counts = transition_counts[transition_prop < min_prop]
-    
+
+    # Others: non-displayed transitions
     if len(minor_counts) > 0:
         major_counts.loc["Others"] = minor_counts.sum()
 
     
     fig, ax = plt.subplots(figsize=(6, 6))
 
-    pie_colors = plt.cm.tab20(np.linspace(0, 1, len(major_counts)))
+    pie_colors = plt.cm.tab20(np.linspace(0, 1, len(major_counts)))   
 
-    if "Others" in major_counts.index:
+    if "Others" in major_counts.index:   # set to grey
         pie_colors[-1] = [0.55, 0.55, 0.55, 1]
 
     ax.pie(
@@ -169,7 +174,7 @@ def plot_transition_province(ssp, compared_df):
         colors=pie_colors,
         startangle=90,
         counterclock=False,
-        autopct=lambda p: f"{p:.1f}%" if p >= 3 else " ",
+        autopct=lambda p: f"{p:.1f}%"
     )
 
     ax.legend(
