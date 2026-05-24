@@ -5,7 +5,7 @@ Input:
 - CSV files produced by calculate_province_area_projections_.py
 
 Usage:
-    python map_world_atlas.py
+    python plot_changed_province.py
     
 """
 

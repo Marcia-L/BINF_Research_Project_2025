@@ -16,6 +16,7 @@ Usage:
 """
 
 import os
+import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
@@ -46,6 +47,20 @@ def load_compared_df(ssp):
     return compared_df
 
 
+def calculate_cell_area_km2(compared_df):
+    R = 6371.0
+    dlat = 0.05
+    dlon = 0.05
+
+    lat_lower = np.deg2rad(compared_df["latitude"] - dlat / 2)
+    lat_upper = np.deg2rad(compared_df["latitude"] + dlat / 2)
+    dlon_rad = np.deg2rad(dlon)
+
+    compared_df["cell_area_km2"] = R**2 * dlon_rad * (np.sin(lat_upper) - np.sin(lat_lower))
+
+    return compared_df
+
+
 def summarise_area_change(ssp_list):
     summary_rows = []
 
@@ -62,9 +77,8 @@ def summarise_area_change(ssp_list):
             "changed_points": changed_points,
             "changed_percent": changed_percent.round(3)
         })
-    summary_df = pd.DataFrame(summary_rows)
 
-    # breakpoint()
+    summary_df = pd.DataFrame(summary_rows)
 
     os.makedirs("../outputs/tables/global_summary", exist_ok=True)
     summary_df.to_csv("../outputs/tables/global_summary/global_area_change_summary.csv", index=False)
@@ -88,14 +102,14 @@ def plot_area_change_proportion(summary_df):
             colors=["#6f8fc2", "#f2f2f2"],
             startangle=90,
             counterclock=False,
-            autopct=lambda p: f"{p:.0f}%" if p<50 else "",
+            autopct=lambda p: f"{p:.0f}%" if p < 50 else "",
         )
         ax.set_title(ssp_title[ssp])
         
         fig.savefig(
-        f"../outputs/figures/global_changed_areas/ssp{ssp}_changed_proportion_pie.png",
-        dpi=300,
-        bbox_inches="tight",
+            f"../outputs/figures/global_changed_areas/ssp{ssp}_changed_proportion_pie.png",
+            dpi=300,
+            bbox_inches="tight",
     )
 
 
@@ -104,42 +118,39 @@ def summarise_province_area_change(ssp_list):
 
     for ssp in ssp_list:
         compared_df = load_compared_df(ssp)
+        compared_df = calculate_cell_area_km2(compared_df)
 
-        baseline_counts = (
-            compared_df["baseline_provinces"]
-                .value_counts()
-                .reindex(province_order, fill_value=0)
-        )
-        ssp_counts = (
-            compared_df["ssp_provinces"]
-                .value_counts()
-                .reindex(province_order, fill_value=0)
-        )
-        total_points = len(compared_df)
+        total_area_km2 = compared_df["cell_area_km2"].sum()
 
         for province in province_order:
-            baseline_area = baseline_counts[province]
-            ssp_area = ssp_counts[province]
-            area_change = ssp_area - baseline_area
+            baseline_area_km2 = compared_df.loc[
+                compared_df["baseline_provinces"] == province,
+                "cell_area_km2"
+            ].sum()
 
-            baseline_percent = baseline_area / total_points * 100
-            ssp_percent = ssp_area / total_points * 100
+            ssp_area_km2 = compared_df.loc[
+                compared_df["ssp_provinces"] == province,
+                "cell_area_km2"
+            ].sum()
+
+            area_change_km2 = ssp_area_km2 - baseline_area_km2
+
+            baseline_percent = baseline_area_km2 / total_area_km2 * 100
+            ssp_percent = ssp_area_km2 / total_area_km2 * 100
             percent_change = ssp_percent - baseline_percent
 
             summary_rows.append({
                 "ssp": ssp,
                 "province": province,
-                "baseline_area": baseline_area,
-                "ssp_area": ssp_area,
-                "area_change": area_change,
+                "baseline_area_km2": baseline_area_km2.round(2),
+                "ssp_area_km2": ssp_area_km2.round(2),
+                "area_change_km2": area_change_km2.round(2),
                 "baseline_percent": baseline_percent.round(3),
                 "ssp_percent": ssp_percent.round(3),
                 "percent_change": percent_change.round(3),
             })
 
     summary_df = pd.DataFrame(summary_rows)
-
-    # breakpoint()
     
     os.makedirs("../outputs/tables/global_summary", exist_ok=True)
     summary_df.to_csv("../outputs/tables/global_summary/province_area_change_summary.csv", index=False)
@@ -164,7 +175,7 @@ def plot_province_area_change_proportion(summary_df):
         ax.axhline(0, color="black", linewidth=0.8)
         ax.set_title(ssp_title[ssp])
         ax.set_xlabel("Province")
-        ax.set_ylabel("Pproportion change (%)")
+        ax.set_ylabel("Proportion change (%)")
         ax.tick_params(axis="x", rotation=45)
 
         fig.savefig(

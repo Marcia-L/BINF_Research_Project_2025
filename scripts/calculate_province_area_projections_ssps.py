@@ -72,7 +72,7 @@ def predict_ssp(ssp):
     # Loading global data
     global_scenario = f"/data/gpfs/projects/punim2700/data/share/global_scenarios/ssp{ssp}_env_data.nc"
     global_scenario = xr.open_dataset(global_scenario)
-    X = global_scenario.head(500).to_dataframe().dropna(how="any").reset_index()
+    X = global_scenario.to_dataframe().dropna(how="any").reset_index()
 
 
     # breakpoint()

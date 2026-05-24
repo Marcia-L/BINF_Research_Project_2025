@@ -3,7 +3,7 @@ Input:
 - CSV files produced by compare_baseline_and_ssps_provinces.py
 
 Output:
-- Global map of predicted provinces, colored by province label.
+- Global map of predicted provinces changed, colored by province label.
 - Pie chart of province-to-province transition proportion
 
 Usage:
@@ -50,7 +50,7 @@ def load_compared_df(ssp):
     
 
 def plot_world_map_colored_by_province(ssp, compared_df):
-    changed_df = compared_df.copy()
+    changed_df = compared_df[compared_df["changed"] == True].copy()
     
     # Accurate to 0.05 degrees
     changed_df["latitude"] = (changed_df["latitude"]/0.05).round()*0.05
