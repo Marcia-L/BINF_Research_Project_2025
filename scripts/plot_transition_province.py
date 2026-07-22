@@ -195,11 +195,61 @@ def plot_transition_province(ssp, compared_df):
     )
 
 
+def plot_transition_province_to(ssp, compared_df):
+    changed_df = compared_df[compared_df["changed"] == True].copy()
+
+    transition_counts = changed_df["ssp"].value_counts()
+    transition_prop = transition_counts / transition_counts.sum()
+
+    # the displayed transition proportion 
+    min_prop = 0.03   
+    major_counts = transition_counts[transition_prop >= min_prop].copy()
+    minor_counts = transition_counts[transition_prop < min_prop]
+
+    # Others: non-displayed transitions
+    if len(minor_counts) > 0:
+        major_counts.loc["Others"] = minor_counts.sum()
+
+    
+    fig, ax = plt.subplots(figsize=(6, 6))
+
+    pie_colors = plt.cm.tab20(np.linspace(0, 1, len(major_counts)))   
+
+    if "Others" in major_counts.index:   # set to grey
+        pie_colors[-1] = [0.55, 0.55, 0.55, 1]
+
+    ax.pie(
+        major_counts.values,
+        colors=pie_colors,
+        startangle=90,
+        counterclock=False,
+        autopct=lambda p: f"{p:.1f}%"
+    )
+
+    ax.legend(
+        major_counts.index,
+        loc="center left",
+        bbox_to_anchor=(1.0, 0.5),
+        frameon=False,
+    )
+
+    ax.set_title(f"ssp{ssp} transition composition")
+
+    os.makedirs("../outputs/figures/global/global_transition_province", exist_ok=True)
+    
+    fig.savefig(
+        f"../outputs/figures/global/global_transition_province/ssp{ssp}_transition_province.png",
+        dpi=300,
+        bbox_inches="tight",
+    )
+
+
 def main():
     for ssp in ["119", "126", "245", "370", "460", "585"]: 
         compared_df = load_compared_df(ssp)
         plot_world_map_colored_by_province(ssp, compared_df)
         plot_transition_province(ssp, compared_df)
+        plot_transition_province_to(ssp, compared_df)
 
 
 if __name__ == "__main__":
